@@ -1,0 +1,4 @@
+interface:
+  display_name: "Feature Development Pipeline"
+  short_description: "Outcome-driven parallel feature delivery"
+  default_prompt: "Use $feature-development-pipeline to deliver this feature through integration, review, and acceptance."
