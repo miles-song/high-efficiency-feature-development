@@ -4,7 +4,7 @@ High-Efficiency Feature Development is a portable orchestration workflow for mul
 
 ## The Challenge
 
-Multi-agent coding workflows frequently optimize for local patch generation rather than integrated feature closure. In one real development effort, parallelized work accumulated dozens of unmerged pull requests while the user reported approximately 4 days and 6 minutes of elapsed effort and roughly 5 billion tokens consumed. These figures are approximate user-reported field observations—not audited token accounting, controlled benchmarks, or evidence that every token was wasted—but they highlight how easily uncoordinated throughput stalls actual delivery.
+Parallel agents can generate work faster than integration capacity, and this can shift the bottleneck from implementation to verification. When the volume of incoming patches exceeds the speed of review and end-to-end validation, repeated setup, redundant code analysis, and lost context consume valuable time and tokens, potentially hindering the project’s overall velocity rather than accelerating it.
 
 ## Field Observations
 
