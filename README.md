@@ -40,7 +40,7 @@ flowchart LR
 Work begins by inspecting existing architecture, contracts, and local repository rules to define the complete user outcome and acceptance chain. A single integrator owns scope, interface definitions, dependency order, early integration, verification evidence, and final closure.
 
 ### 2. Execution Packages vs. Delivery Boundaries
-Parallel work packages are internal execution units, not automatic pull-request boundaries. Parallelizing work requires stable interfaces and strictly nonoverlapping owned files. If boundaries are still shifting, work stays sequential until contracts settle.
+Parallel work packages are internal execution units, not automatic pull-request boundaries. Before fan-out, the integrator identifies coherent delivery units from host rules, ownership, and dependencies—such as distinct service and view units with complete operable responsibility and their companion tests, config, and docs—without forcing a PR per package or splitting helpers. Parallelizing work requires stable interfaces and strictly nonoverlapping owned files. If boundaries are still shifting, work stays sequential until contracts settle.
 
 ### 3. Capacity-Aware Scheduling and Worker Reuse
 The integrator maintains adaptive scheduling preferences informed by bottlenecks, readiness, risk, and capacity. Prioritize critical path unblocking, integration defects, and acceptance or closure tasks—but blocked urgent work must not prevent useful, independent parallel progress. Concurrency tracks actual reviewer and runtime capacity; workers are never spawned merely to fill slots. Context-carrying workers are reused across related follow-ups rather than replaced with fresh duplicate audits or noisy status polling.
@@ -58,7 +58,7 @@ Instead of reviewing disconnected micro-diffs or re-auditing unstable branches, 
 
 ## Integration and Acceptance Evidence
 
-A feature reaches closure only when proven across the real boundaries appropriate to the change, confirming an operable flow with authoritative read-back from the backing state or interface. Verification records keep evidence categories explicitly distinct:
+A feature reaches closure only when proven across the real boundaries appropriate to the change, confirming an operable flow with authoritative read-back from the backing state or interface—and, when remote delivery is authorized, completing PR, required review and CI, merge and target-branch read-back, and any in-scope deployment verification (reporting external deployment blocks accurately). Verification records keep evidence categories explicitly distinct:
 
 - **Unit evidence:** Fast logic and edge-case checks in isolation.
 - **Integration evidence:** Real module, service, storage, or API contract interaction.
