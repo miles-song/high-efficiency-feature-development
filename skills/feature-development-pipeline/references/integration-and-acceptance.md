@@ -39,7 +39,7 @@ Do not conflate verification tiers or claim unrun checks when reporting closure:
 - **CI:** The exact automated suite and runner environment executed; passing CI does not imply browser or device acceptance unless those checks actually ran in that job.
 - **Browser / Device Acceptance:** Select based on the affected user journey rather than the category of modified files. Run browser or device checks whenever a change alters an existing or new client-facing flow (including backend changes that alter client-visible behavior), and omit them for genuinely non-UI behavior. Exercise the agreed user flow in the real runtime, verifying visible outcomes, network requests, and persisted state on reload when applicable. Record browser and physical/emulated device evidence separately when both apply.
 
-For every reported check, record the exact revision, target environment, command or user flow, data scope, pass/fail outcome, and artifact or log location. Redact credentials, tokens, and private data from all outputs and screenshots.
+For every reported check, record the exact revision, target environment, command or user flow, data scope, pass/fail outcome, and artifact or log location, applying base/head and diff checks to the actual delivery heads rather than a dirty combined tree. When the user has authorized remote delivery, carry closure through local commit/submodule/dependency order, push/PR, required independent review and CI, merge and target-branch read-back, and any in-scope deployment or known-target check—distinguishing external deployment blockers from verified live updates. Redact credentials, tokens, and private data from all outputs and screenshots.
 
 ## Optional Further Reading
 
