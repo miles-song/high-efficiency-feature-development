@@ -1,4 +1,4 @@
 interface:
   display_name: "Feature Development Pipeline"
-  short_description: "Outcome-driven parallel feature delivery"
-  default_prompt: "Use $feature-development-pipeline to deliver this feature through integration, review, and acceptance."
+  short_description: "Deliver reviewable single features end to end"
+  default_prompt: "Use $feature-development-pipeline to deliver each single business feature through explicit single-agent or multi-agent stages, reviewable scope, intent-aligned tests, real-boundary acceptance, and authorized merge closure."
