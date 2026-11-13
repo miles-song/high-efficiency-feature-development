@@ -1,43 +1,85 @@
-# Work-Package Orchestration
+# Work-Package Orchestration and Reviewability Mechanics
 
-Use this reference when a feature spans distinct implementation packages or parallel contributors. One feature integrator owns the scope, shared interfaces, dependency map, integration, final evidence, and closure. Packages are internal execution units, not automatic pull-request boundaries. Obey all host repository rules, architecture constraints, and merge gates; skip orchestration ceremony for small, isolated fixes.
+Load this reference when selecting multi-agent execution, coordinating parallel waves across Features or work packages, or bounding review scope for a large candidate. Host `AGENTS.md` instructions, delegation limits, and branch protections always take precedence.
 
-## Dependency and Ownership Map
+## Single-Agent vs Multi-Agent Decision Gate
 
-Before launching parallel work, inspect existing code and contracts to map the smallest set of packages that deliver the complete user outcome:
+Stay in single-agent mode when one author can hold the entire change cleanly: localized fixes, edits concentrated in the same files, or exploratory work with unsettled interfaces. Switch to multi-agent mode at Stage 3 only when all three conditions hold:
 
-- **Explicit file ownership:** Assign non-overlapping owned files or directories to each active package. If a shared file must change, assign a single owner or sequence edits through a deliberate handoff.
-- **Stable interfaces:** Settle cross-package data shapes, signatures, error semantics, and state transitions up front. Do not let individual packages invent local contract substitutes.
-- **Single shared-runtime owner:** When work touches a shared runtime, database, or environment, assign one owner for lifecycle, configuration, seed data, and recovery. Unrelated isolated unit or contract tests may still run concurrently.
+1. Consumed interfaces, data shapes, error semantics, and state ownership are settled.
+2. At least two work packages (or independent Features) have disjoint writable paths and clear check commands.
+3. Host rules permit delegation and active capacity remains to drain review, acceptance, and merge queues.
 
-## Contextual Concurrency and Scheduling
+## Hierarchy, Ownership, and Dependency Map
 
-Match concurrency to actual reviewer, integration, and runtime capacity. Never fill worker slots just to use available concurrency, and avoid rigid state-machine tracking or fixed role counts.
+- **Root-only dispatch:** One **primary integrator** owns decomposition, contract decisions, candidate integration, review/QA coordination, and target-branch closure. Dispatched contributors operate as **leaf workers** and must never spawn sub-workers, relax independent review, or self-authorize merges.
+- **Compact dependency map:** Reuse the active task note or handoff record instead of creating a parallel tracking system. For each Feature and work package, record the integrator, package owner, writable paths, consumed contracts, shared-file sequence, runtime reservations, candidate ref, status, and immediate next action. Use explicit statuses: `ready`, `in_progress`, `awaiting_review_or_qa`, `ready_to_merge`, `merged`, `released`, or `blocked` (always naming the blocker, owner, and unblock condition).
+- **Early consumer start:** A consumer package (client UI, caller logic, QA harness, or docs) may start before its producer finishes once schemas, state rules, and error contracts are fixed. Final boundary acceptance still waits for the integrated producer-and-consumer candidate at Stage 5 and Stage 6.
+- **Shared-file handoff:** Give concurrent writers disjoint file scopes. Keep shared routers, registries, barrels, or ordered migrations with the integrator, or sequence them (`Package A -> integrator check -> Package B`).
+- **Source isolation:** Isolate concurrent writers with separate worktrees, branches, or strict path scopes so uncommitted edits and snapshots never contaminate another worker's diff or test run. Disjoint owned paths or branch names alone do not isolate a build that reads the whole worktree. Once `C1` freezes, the exact source, build, and config inputs used by its review or QA cannot be edited underneath running checks. Continued parallel implementation must use an isolated checkout or snapshot alongside coordinated runtime reservations.
+- **Runtime lifecycle vs reservations:** Assign **one shared-runtime lifecycle owner** for any shared dev server, database, container stack, seed state, or recovery routine. Separately track narrow **resource reservations** for exclusive conflicts: port bindings, interactive browser sessions, mobile/device emulators, destructive DB resets, or quiet CPU/GPU benchmark windows. Isolated unit suites, static analysis, and isolated test containers run concurrently outside those reservations.
+- **Scoped failure handling:** When a package, check, or external gate fails, pause only the units that depend on that broken contract, artifact, or gate. Do not launch duplicate speculative implementations of a blocked prerequisite; redirect spare capacity to fixes, Stage 5-8 draining, or independent ready Features.
 
-- **Schedule only ready work:** Launch a package when what it actually consumes is settled: a usable interface or prerequisite, clear file ownership, and defined acceptance criteria. A predecessor package does not need to be fully finished if the consumed contract or artifact is already stable. If a package becomes blocked, pause it and record the specific dependency and concrete unblock condition rather than guessing.
-- **Adapt scheduling to bottlenecks and risk:** Weigh active bottlenecks, integration risk, readiness, and available capacity rather than following a rigid queue. Generally favor critical-path or unblocking work, active integration defects, and acceptance or closure tasks over starting new packages, but never let a blocked high-priority item stall unrelated ready work when capacity is available.
-- **Reuse context-carrying workers:** Route follow-up tasks, adjacent packages, and defect fixes to workers that already hold the relevant domain and codebase context. Avoid duplicate discovery audits and frequent status polling.
-- **Pipeline verification and integrate when checks permit:** Start test harnesses, fixtures, and acceptance preparation as soon as contracts and prerequisites allow. Integrate completed packages into the combined candidate promptly once required package-level checks pass and the integration target is ready, running focused boundary checks so defects surface early.
+## Compact Leaf Task Brief
 
-## Task Brief
-
-Provide each contributor a compact brief containing only the context required to execute and verify the package:
+Send each leaf worker a self-contained brief without dumping unrelated chat history:
 
 ```text
-Objective: package deliverable and how it advances the end-to-end user outcome
-User flow: relevant trigger, expected behavior, and failure/recovery path
-Owned files: exact files or directories this package is permitted to modify
-Interface/dependencies: consumed contracts, upstream prerequisites, and handoff points
-Verification: required unit/integration checks, fixtures, and runtime constraints
-Result handoff: modified files/applicable revision, executed checks with outcomes, remaining integration obligations, or blocking dependency + concrete unblock condition
+Objective: concrete package deliverable and the single Feature outcome it serves
+Business & test intent: user/caller scenario, failure/recovery expectations, and required suite-level scenario/gap notes
+Exact writable paths: explicit files or directories writable by this worker (all other paths read-only)
+Consumed interfaces & prerequisites: settled contracts, schemas, error codes, upstream refs, and non-goals
+Allowed environment: permitted test/build commands, isolation mode, shared-runtime owner, and active resource reservations
+Handoff output: base ref + checkpoint commit/patch, merge-base added+deleted counts by path category, exact checks run with pass/fail logs, and unresolved risks or blockers
+Next closure owner: primary integrator (or named reviewer/QA leaf) and the immediate Stage 5/6 action after handoff
 ```
 
-## Integrated Review Synchronization
+## Overlapping Execution Schedule and Bottleneck Control
 
-Avoid fragmented package-by-package review gates. Use an early contract consultation only when a high-risk interface decision would otherwise cause expensive rework, and reuse that same reviewer later.
+Reserve finishing capacity (at least one active slot or the primary integrator's immediate attention) to drain the oldest unit in Stages 5-8 before starting new coding packages.
 
-Once all packages are integrated into a stable combined candidate, conduct one complete Feature Review. When dependencies and runtime ownership permit, overlap this review with full CI runs and independent runtime acceptance execution, explicitly noting which verification evidence is already complete and which overlapping checks remain pending. Give the reviewer a concise context packet: the end-to-end user journey, locked contracts, unified diff, and distinct verification evidence (keeping unit, integration, CI, and any applicable UI or device results separate, and noting any pending checks).
+| Wave | Prerequisite / Serial Gate | Safe Parallel Work | Output Needed Next |
+|---|---|---|---|
+| **Wave 1: Contract & plan** | Stage 1 behavior clear | Primary integrator settles Stage 2 contracts and Stage 3 ownership/review boundary; optional read-only repo/test inspection leaves | Settled contracts, disjoint file map, agreed review boundary, and test-intent plan |
+| **Wave 2: Parallel build & prep** | **Serial gate:** consumed contracts and file map settled | Producer leaf(s), contract-consuming client/caller leaf(s), companion docs/config updates, and integration/QA fixture or harness preparation | Verified package checkpoints and ready acceptance harness |
+| **Wave 3: Candidate freeze** | **Serial gate:** required packages for Feature `F1` pass focused checks | Primary integrator integrates `F1`, resolves shared-file wiring, freezes exact candidate `C1`, and computes `merge-base` diff counts; independent Feature `F2` continues Wave 2 | Frozen candidate `C1` and full role-grouped diff disclosure |
+| **Wave 4: Review + QA overlap** | **Serial gate:** exact candidate `C1` frozen | One integrated reviewer inspects `C1` while CI, integration suites, and permitted browser/device acceptance run against `C1` under runtime reservations; `F2` integrates in parallel | Consolidated review result + distinct runtime/CI evidence bound to `C1` |
+| **Wave 5: Delta fix & reuse** | Actionable Stage 6 findings or check failures on `C1` | Original leaf owner (or integrator) applies minimal fix -> freezes `C2` -> reruns affected checks -> **same reviewer** inspects `C1..C2` delta while valid unchanged evidence stays attached | Approved `C2` candidate without full re-audit of untouched scope |
+| **Wave 6: Independent closure** | **Serial gate:** `C1`/`C2` review + mandatory checks pass and merge is authorized | Primary integrator merges `F1`, reads back target branch, and runs in-scope release check while `F2` continues in Wave 3-5 | Verified `F1` closure (`merged` / `released`) with `F1` PR(s) closed; remaining active units retain named owners and immediate next actions |
 
-Preserve a reviewable checkpoint (such as a Git commit or full diff/content snapshot rather than a hash-only manifest) when freezing a candidate so delta reviews can inspect exact prior contents. The reviewer returns a single consolidated list of findings backed by concrete triggers and user, system, or maintenance/code-necessity impact, omitting purely stylistic nits. The same reviewer verifies the subsequent fix delta and its integration impact, reusing unchanged conclusions and valid evidence without retesting untouched behavior unless risk or host policy requires it, while the integrator closes any previously pending CI or runtime evidence; restart a full review only if fixes introduce material scope or behavioral changes, or when local mandatory gates require it.
+## Reviewability Mechanics and Oversize Response
 
-Optional supplementary reference: [Sentry's code-review skill](https://github.com/getsentry/skills/blob/c2f99a5b04b4cd992ec3022d7c2c3e23e938d241/skills/code-review/SKILL.md) offers general review heuristics when local guidelines leave room, without replacing the single integrated review model above.
+### 1. Reproducible Merge-Base Accounting
+
+Measure scope from the target branch merge-base to the exact candidate:
+
+1. Resolve `BASE=$(git merge-base <target-branch> <candidate-ref>)`.
+2. Run `git diff --numstat "$BASE" <candidate-ref>` and sum `added + deleted` lines per file; never report net delta (`added - deleted`) or latest-commit-only diffs.
+3. Disclose every changed path across five buckets:
+   - **Core decision files:** domain invariants, state transitions, auth/permissions, billing/payments, concurrency/locking, schema/query logic, and external or cross-service contracts.
+   - **Supporting handwritten production files:** framework wiring, transport DTO plumbing, straightforward UI bindings, and config glue.
+   - **Handwritten test files:** unit, integration, contract, and browser/device suites.
+   - **Supporting config and docs:** documentation, environment templates, and non-code metadata.
+   - **Verified generated, vendor, lock, or binary paths:** excluded from handwritten totals only after listing each path, its generator or origin, and verifying zero hand-edited logic.
+
+Never classify handwritten branching, business defaults, retry policies, or permission checks as `generated` or `mechanical adapter`.
+
+### 2. Risk Calibration and Provisional Planning Heuristics
+
+At Stage 3, agree an explicit review boundary covering the expected core decision files, critical invariants, and, when useful, a rough handwritten diff estimate. Calibrate that boundary primarily by semantic risk: state-machine changes, contract surface, cross-directory spread, and sensitive logic in auth, permissions, billing, idempotency, concurrency, or migrations. A 15-line permission or payment-retry edit still requires thorough failure-mode review.
+
+Treat numeric thresholds solely as **initial team planning heuristics** (provisional checkpoints calibrated to risk, not researched reviewer-accuracy facts and not universal Feature caps):
+
+- Treat roughly `6-8` core decision files or `500-800` handwritten production `added + deleted` lines as a checkpoint to verify that one review pass remains bounded.
+- Treat roughly `400-500` lines in a **new** handwritten file, or a second unrelated responsibility in an existing file, as a cohesion check.
+- Keep localized bug fixes or small behavior updates inside existing large files tight; never split legacy files merely to satisfy file-count or line-count heuristics.
+- Prefer direct control flow and clear module ownership over compressed one-liners or helper layers created only to shuffle line counts across files.
+
+### 3. Concrete Actions When a Candidate Outgrows a Flat Pass
+
+When a Stage 3 estimate or Stage 5 diff crosses the agreed review boundary, stop expanding the flat pass and never claim an unbounded `atomic feature` waiver. Apply these responses in order while keeping business code and companion tests in the same Feature PR:
+
+1. **Split independent outcomes or groundwork:** Extract any second user-visible behavior or standalone prerequisite into its own Feature with its own tests and merge cycle.
+2. **Trim repetitive test setup:** Consolidate duplicated test scaffolding into shared builders, fixtures, or parameterized cases without weakening scenario coverage.
+3. **Use bounded internal review packets:** Partition an indivisible cross-layer Feature into ordered commit or snapshot checkpoints reviewed sequentially by the **same reviewer**, without opening per-packet PRs.
+4. **Run final integrated verification:** Freeze the complete Feature candidate, disclose full `merge-base` counts, verify cross-packet interactions, and pass full Stage 6 boundary acceptance before merge.

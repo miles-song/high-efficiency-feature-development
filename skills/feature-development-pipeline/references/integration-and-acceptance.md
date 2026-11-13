@@ -1,46 +1,53 @@
-# Integration and Acceptance Testing
+# Intent-Aligned Testing, Real-Boundary Acceptance, and Closure
 
-Use this reference when a feature crosses runtime boundaries or when correctness depends on persistence, state transitions, recovery, or real user interaction. Obey host repository rules for test environments, data isolation, and mandatory gates.
+Load this reference when planning test suites (Stage 3), writing companion tests (Stage 4), running integration and client acceptance (Stages 5-7), or closing merges (Stage 8). Repository test conventions, environment rules, and branch protections always take precedence.
 
-## Select and Design Integration Checks
+## Suite-Level Test Intent and Completeness
 
-Derive checks from consequential user-journey steps and state transitions rather than testing every permutation:
+Tests are complete when they protect the Feature's business behavior, caller contracts, and failure or recovery rules, not when they chase arbitrary line-coverage percentages.
 
-- **Declare boundaries:** State which collaborating layers are real in the check (such as client UI, API service, database, queue, or object storage) and which are mocked or excluded. If a collaborator central to the claim is mocked, name the mock and narrow the evidence claim accordingly.
-- **Isolate fixtures and state:** Use deterministic inputs and isolated test data scoped to the run. Never rely on shared mutable records or execution order.
-- **Explicit setup and teardown:** Define required service configuration, seed data, and starting state. Ensure teardown runs on both success and failure, removes only resources owned by the test, and verifies cleanup when residue could affect subsequent runs.
-- **Assert cross-layer effects:** Do not stop at an HTTP status, dispatched event, or optimistic UI state. Verify the relevant authoritative effect across the boundary (such as emitted messages, downstream calls, or state changes). For features that persist state, query, reload, or reopen through the standard authoritative read API to prove persistence and recovery; inspect the underlying datastore directly only when permitted by local architectural and test boundaries.
-- **Cover contract-specific failure modes:** Exercise error handling, unknown outcomes, retries, duplicate submissions, or cancellation only when the feature contract requires them. Keep retry clocks deterministic and assert that duplicate actions do not corrupt state or create unintended records.
+- **Mandatory suite or file intent note:** Start every new or materially expanded test file or top-level `describe`/suite block with a concise 2-4 line note:
+  1. **Business scenarios:** Which user or caller workflows and inputs this suite exercises.
+  2. **Protected behavior or failure mode:** Which invariant, state transition, permission rule, or regression fails if this suite breaks.
+  3. **Existing coverage gap:** Why existing suites did not already protect this behavior (for example, mocked storage hid reload bugs or a new role rule arrived).
+- **Extend matching suites first:** Add cases to established suite files and reuse fixtures or parameterization when boundaries fit, avoiding cloned test files or line-by-line assertion comments.
+- **Assert authoritative outcomes:** Check returned contracts, user-visible states, emitted domain events, and persisted read-backs rather than private helper calls or internal execution order.
+- **Cover real failure and recovery rules:** Test validation rejections, permission denials, retry or idempotency rules, partial-failure rollback, and reload consistency when relevant to this Feature's actual contract. Skip permutations with no distinct rule or failure modes outside that contract, such as permission or payment checks on a simple UI edit.
+- **Ship tests with the Feature:** Keep unit, contract, and required integration or acceptance tests in the same Feature delivery unit rather than deferring them to follow-up PRs.
 
-### Example: Persisted-Record Save-and-Reopen Outline
+## Honest Mocks, Isolation, and Stateful Chains
 
-Use a pattern like this when a feature creates or updates durable records (adapt setup and read paths to local architecture):
+- **Declare real vs mocked boundaries:** In Stage 6-8 reports, name which collaborators ran for real (client, API, DB, queue, cache, auth) and which external services were stubbed. Never describe a mock-backed test run as end-to-end or real-boundary acceptance.
+- **Isolate independent tests:** Scope records, files, clocks, and accounts per test run, and clean up created state in teardown on both pass and fail.
+- **State preconditions for stateful chains:** When an acceptance journey intentionally spans ordered steps (such as create -> approve -> reopen), document initial preconditions, run namespaces, and step transitions. Inspect shared environments for pre-existing records before mutating state, and never replay one-time creation steps blindly against dirty fixtures.
 
-1. **Setup:** Create isolated test fixtures or seed an initial record through the supported service or test setup path (mocking only unrelated external collaborators).
-2. **Action:** Submit a state-changing update through the target interface.
-3. **Cross-boundary assertion:** Verify the response contract and the authoritative side effect (via the normal read API, or direct datastore inspection where locally permitted).
-4. **Read-back / reopen:** Re-fetch or reopen the resource in a fresh context and assert that the persisted state returns or renders accurately.
-5. **Teardown:** Remove only the test-owned records or resources in a guaranteed cleanup step.
+## Verification Tiers and Exact Candidate Binding
 
-## Execution Cadence
+Keep the four verification tiers distinct in all Stage 6-8 evidence reports:
 
-Pipeline verification to catch defects early without redundant full-suite runs:
+1. **Unit and narrow contract checks:** Fast isolated logic, schema, and edge-case checks run in Stage 4 and after every fix.
+2. **Real-boundary integration checks:** Multi-layer checks across live service, storage, or queue boundaries that confirm authoritative persistence and read-back.
+3. **CI pipeline checks:** Required repository runner jobs; green CI counts as browser or device proof only when that job actually executed those real client flows.
+4. **Real client or QA boundary acceptance:** Required whenever changes alter client-observable behavior, including backend schema, validation, permission, pagination, error, or timing updates with zero UI files touched. Exercise the real browser, CLI, SDK, or mobile/device runtime when client behavior is affected; skip UI harnesses for purely internal non-client changes.
 
-- Run focused unit and narrow integration checks as soon as individual work packages or interfaces stabilize.
-- Run broader integration, CI, and acceptance checks against the integrated candidate once dependencies meet.
-- After a fix, rerun the affected checks and any integration path touched by the delta. Carry forward earlier results only when the underlying code, configuration, and environment remain unchanged; run broader regression checks if the fix alters shared contracts or risk.
+Bind every check record to the exact candidate ID, `merge-base` ref, environment, command or user journey, fixture scope, real vs mocked boundaries, verdict, and log path. Reuse prior evidence after a Stage 7 fix or clean rebase only when untouched code, build inputs, config, environment, and fixtures remain verifiably identical. Rerun every check affected by the delta, and retain failed-run logs when diagnosing flakes or regressions instead of retrying silently until green.
 
-## Keep Evidence Distinct
+## Commit Hygiene, Authorized Merge, and Closure States
 
-Do not conflate verification tiers or claim unrun checks when reporting closure:
+The primary integrator owns final handoffs until each Feature reaches its authorized delivery boundary:
 
-- **Unit:** Isolated logic or component behavior with mocked collaborators.
-- **Integration:** Specified real boundaries, isolated fixtures, guaranteed teardown of owned data, and authoritative cross-boundary assertions (including persistence/read-back when state is stored).
-- **CI:** The exact automated suite and runner environment executed; passing CI does not imply browser or device acceptance unless those checks actually ran in that job.
-- **Browser / Device Acceptance:** Select based on the affected user journey rather than the category of modified files. Run browser or device checks whenever a change alters an existing or new client-facing flow (including backend changes that alter client-visible behavior), and omit them for genuinely non-UI behavior. Exercise the agreed user flow in the real runtime, verifying visible outcomes, network requests, and persisted state on reload when applicable. Record browser and physical/emulated device evidence separately when both apply.
+1. **Clean commit and PR metadata:** Describe the observable business change, key design rationale, and validation summary in commit subjects, commit bodies, and PR descriptions. Omit model names and automated-generation or tool attribution and provenance trailers from commit and PR metadata. Preserve normal Git author identity, legitimate human credit, and product model or provider identifiers in source code and APIs.
+2. **Pre-merge gate check:** Confirm Stage 6/7 review sign-off, required CI and boundary evidence on the exact candidate, target-branch sync, and any main-branch auto-deploy effect.
+3. **Ordinary authorized merge:** When remote push, PR, and merge actions are authorized, publish the Feature PR, satisfy required branch gates, and run the standard repository merge. Never bypass branch protections, skip required reviews or CI, or assume external merge or deploy permissions that were not granted.
+4. **Independent vs coupled publication:** Merge each independent Feature once its own gates pass, even while other Features remain in implementation or review. When coupled changes across layers or repositories would expose broken intermediate behavior alone, coordinate feature flags, merge order, or release windows before publication.
+5. **Target-branch read-back:** Fetch and inspect the landed target-branch commit (plus any package or submodule pins) immediately after merge; local branch state or `PR mergeable` never suffices.
+6. **Release check and terminal states:** Complete any authorized in-scope live verification, close the finished Feature's PR(s), and report status precisely:
+   - **`merged`:** Landed and read back on the target branch; live deployment is out of scope or not yet executed.
+   - **`released`:** Merged on the target branch **and** verified live in the target runtime environment.
+   - **`blocked`:** Paused at a missing external gate, environment fault, or ungranted permission, naming the blocker, owner, and immediate unblock action while unrelated work continues.
 
-For every reported check, record the exact revision, target environment, command or user flow, data scope, pass/fail outcome, and artifact or log location, applying base/head and diff checks to the actual delivery heads rather than a dirty combined tree. When the user has authorized remote delivery, carry closure through local commit/submodule/dependency order, push/PR, required independent review and CI, merge and target-branch read-back, and any in-scope deployment or known-target check—distinguishing external deployment blockers from verified live updates. Redact credentials, tokens, and private data from all outputs and screenshots.
+When other Features remain active, keep their named owners and next actions explicit in the handoff note, and redact secrets, tokens, cookies, and private data from artifacts.
 
 ## Optional Further Reading
 
-- For broader risk-based test design, see [Testified's test-case-design skill](https://github.com/testified-oss/agent-skills/blob/dce83769bc5d45b2150c1ac2e3c731db17830b29/skills/test-case-design/SKILL.md) as an optional supplement to local testing rules.
+- [Testified Test Case Design Skill](https://github.com/testified-oss/agent-skills/blob/dce83769bc5d45b2150c1ac2e3c731db17830b29/skills/test-case-design/SKILL.md) (optional supplement for boundary and scenario selection)
