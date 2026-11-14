@@ -58,7 +58,9 @@ Each bounded module receives one Feature Review when its implementation and comp
 
 ## Integration and Acceptance Evidence
 
-A module reaches its merge milestone after its own tests, review, mandatory checks, authorized merge, and target-branch read-back. As modules land, test their real interactions; once the affected flow is assembled, run full integration, end-to-end acceptance, and authorized live verification. Module merges and whole-flow release are reported separately. Evidence categories stay distinct:
+A module reaches its merge milestone after its own tests, review, mandatory checks, authorized merge, and target-branch read-back. As modules land, test their real interactions; once the affected flow is assembled, run full integration, end-to-end acceptance, and authorized live verification. Module merges and whole-flow release are reported separately.
+
+Plan that assembly as a bounded Integration Feature: analyze operation, state, error, and recovery paths, then deliver only the required wiring, integration fixes, and scenario tests on top of merged prerequisites. Around 1,000 handwritten production added+deleted lines is a soft prompt to assess scope and finish a cohesive module; small complete modules close earlier, and host PR policy governs larger changes. Evidence categories stay distinct:
 
 - **Unit evidence:** Fast logic and edge-case checks in isolation.
 - **Integration evidence:** Real module, service, storage, or API contract interaction.

@@ -29,6 +29,8 @@ Modules merge progressively in dependency order. A domain service and its later 
 
 After modules land, run integration checks across their actual contracts and state. Once the affected user flow is assembled, run its full end-to-end journey and authorized live read-back. Keep responsibility with the original module owner when integration exposes a defect. Do not substitute the final journey for each module's own tests, and do not report a module merge as full-flow acceptance.
 
+Treat the bounded assembly itself as an **Integration Feature**. Analyze its operation sequence, state transitions, contract connections, and relevant error and recovery paths before implementation. Merge verified prerequisites first; its PR contains the necessary wiring, integration fixes, and scenario tests rather than another copy of prerequisite code. Run its affected integration/end-to-end checks and host-required real-client gates on the assembled candidate before merge, then read back the target branch and complete authorized live verification. These assembly gates belong to the Integration Feature rather than every future prerequisite module.
+
 ## Verification Tiers and Exact Candidate Binding
 
 Keep the four verification tiers distinct in all Stage 6-8 evidence reports:
