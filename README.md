@@ -1,6 +1,6 @@
 # High-Efficiency Feature Development
 
-High-Efficiency Feature Development is a portable orchestration workflow for multi-agent software delivery. It structures end-to-end feature execution around clear interface contracts, disciplined concurrency, unified integration, and real-boundary verification—turning fragmented agent output into complete, operable software.
+High-Efficiency Feature Development is a portable workflow for incremental software delivery. It scopes each Feature as a small, cohesive module within one domain, with clear contracts, its own tests, and a reviewable PR. Ready modules merge progressively; integration and end-to-end checks then verify the assembled user flow.
 
 ## The Challenge
 
@@ -10,13 +10,13 @@ Parallel agents can generate work faster than integration capacity, and this can
 
 When multi-agent delivery stalls near the finish line, five failure patterns typically appear:
 
-- **Micro-PR and helper-level fragmentation:** Splitting a single feature into isolated helper or sub-component pull requests multiplies review overhead while hiding end-to-end behavior.
+- **Implementation-fragment PRs:** Opening separate PRs for helpers, state classes, or test files multiplies review overhead without delivering a complete module responsibility.
 - **Lost cross-boundary context:** Independent workers make incompatible assumptions across pages, APIs, state transitions, or persistence layers.
 - **Duplicate reviews on shifting candidates:** Running full-scope audits repeatedly before underlying branches stabilize wastes context and produces contradictory feedback.
 - **Green mocks without an operable flow:** Unit suites pass against synthetic stubs while the assembled application fails on real state transitions or persistence.
 - **Integration and merge queues:** Completed fragments sit waiting for conflict resolution, rebasing, and combined verification while new branches continue to open.
 
-In this workflow, progress is not measured by open branches, isolated diffs, or mocked test counts. Progress means an operable complete flow verified through authoritative read-back across the relevant system boundaries. Conversely, isolated low-impact fixes should go straight to implementation and verification without multi-package ceremony.
+Progress includes tested, reviewed modules landing on the target branch, followed by verified integration and complete user flows. These are distinct milestones. A helper-level patch is not automatically a Feature, and a finished module need not wait for the entire initiative before it can merge.
 
 ## Pipeline Architecture
 
@@ -24,23 +24,23 @@ The workflow separates internal execution parallelism from integration and revie
 
 ```mermaid
 flowchart LR
-    A[Outcome & Contracts] --> B[Integrator Scope & Plan]
+    A[Domain & Module Contracts] --> B[Module PR Boundaries]
     B --> C1[Package A: Owned Files]
     B --> C2[Package B: Owned Files]
-    C1 --> D[Early Integration]
+    C1 --> D[Bounded Module Candidate]
     C2 --> D
     B --> E[Acceptance & Runtime Prep]
-    D --> F[Combined Candidate]
-    E --> F
-    F --> G[Feature Review & CI/Runtime Proof]
-    G --> H[Delta Fixes & Closure]
+    D --> F[Module Review & Own Tests]
+    F --> G[Incremental Merge & Read-back]
+    G --> H[Assembled Integration & End-to-End]
+    E --> H
 ```
 
 ### 1. Outcome Definition and Single Integrator Ownership
-Work begins by inspecting existing architecture, contracts, and local repository rules to define the complete user outcome and acceptance chain. A single integrator owns scope, interface definitions, dependency order, early integration, verification evidence, and final closure.
+Work begins by inspecting the domain, existing modules, contracts, and repository rules. Before implementation, the integrator identifies complete module responsibilities and their intended PR boundaries, tests, and merge order. The integrator owns both incremental merge closure and later assembled-flow acceptance.
 
 ### 2. Execution Packages vs. Delivery Boundaries
-Parallel work packages are internal execution units, not automatic pull-request boundaries. Before fan-out, the integrator identifies coherent delivery units from host rules, ownership, and dependencies—such as distinct service and view units with complete operable responsibility and their companion tests, config, and docs—without forcing a PR per package or splitting helpers. Parallelizing work requires stable interfaces and strictly nonoverlapping owned files. If boundaries are still shifting, work stays sequential until contracts settle.
+Parallel packages are internal execution units. A Feature PR contains one cohesive domain module and its necessary tests, config, and docs. A picker, editor, or service with a complete responsibility and real consumer contract can be a Feature; individual buttons, helpers, state classes, and test files stay inside their module. Settle interfaces and file ownership before parallel work. Do not implement a whole workflow first and defer PR decomposition until the end.
 
 ### 3. Capacity-Aware Scheduling and Worker Reuse
 The integrator maintains adaptive scheduling preferences informed by bottlenecks, readiness, risk, and capacity. Prioritize critical path unblocking, integration defects, and acceptance or closure tasks—but blocked urgent work must not prevent useful, independent parallel progress. Concurrency tracks actual reviewer and runtime capacity; workers are never spawned merely to fill slots. Context-carrying workers are reused across related follow-ups rather than replaced with fresh duplicate audits or noisy status polling.
@@ -50,15 +50,15 @@ Isolated unit and contract checks may run concurrently inside individual package
 
 ## Feature Review
 
-Instead of reviewing disconnected micro-diffs or re-auditing unstable branches, the workflow conducts one full Feature Review once the combined candidate is assembled and internally coherent:
+Each bounded module receives one Feature Review when its implementation and companion tests are coherent:
 
-- **Full-context inspection:** The reviewer evaluates the complete user journey, interface contracts, combined diff, and verification evidence together. Review focuses on concrete maintainability and code necessity—such as identifying unnecessary code, duplication, excessive abstraction, or coupling/boundary violations—without performing style-only churn.
+- **Full module context:** The reviewer evaluates the module's complete operation, domain boundaries, consumer contracts, implementation, and own tests together. Related modules remain separate delivery units; sequential review checkpoints do not justify an oversized PR.
 - **Consolidated actionable findings:** Feedback is grouped into concrete defects stating exact trigger conditions and user or system impact.
 - **Targeted delta verification:** After fixes land, the same reviewer inspects the fix delta and its integration impact. A full review restart occurs only when scope or behavior changes materially, or when local mandatory gates require one.
 
 ## Integration and Acceptance Evidence
 
-A feature reaches closure only when proven across the real boundaries appropriate to the change, confirming an operable flow with authoritative read-back from the backing state or interface—and, when remote delivery is authorized, completing PR, required review and CI, merge and target-branch read-back, and any in-scope deployment verification (reporting external deployment blocks accurately). Verification records keep evidence categories explicitly distinct:
+A module reaches its merge milestone after its own tests, review, mandatory checks, authorized merge, and target-branch read-back. As modules land, test their real interactions; once the affected flow is assembled, run full integration, end-to-end acceptance, and authorized live verification. Module merges and whole-flow release are reported separately. Evidence categories stay distinct:
 
 - **Unit evidence:** Fast logic and edge-case checks in isolation.
 - **Integration evidence:** Real module, service, storage, or API contract interaction.
