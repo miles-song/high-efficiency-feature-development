@@ -69,12 +69,12 @@ Never classify handwritten branching, business defaults, retry policies, or perm
 
 At Stage 3, agree an explicit review boundary covering the expected core decision files, critical invariants, and, when useful, a rough handwritten diff estimate. Calibrate that boundary primarily by semantic risk: state-machine changes, contract surface, cross-directory spread, and sensitive logic in auth, permissions, billing, idempotency, concurrency, or migrations. A 15-line permission or payment-retry edit still requires thorough failure-mode review.
 
-Treat numeric thresholds solely as **initial team planning heuristics** (provisional checkpoints calibrated to risk, not researched reviewer-accuracy facts and not universal Feature caps):
+Use roughly `1,000` handwritten production `added + deleted` lines as a **soft scope and closure checkpoint**, calibrated to risk rather than a universal Feature cap:
 
-- Treat roughly `6-8` core decision files or `500-800` handwritten production `added + deleted` lines as a checkpoint to verify that one review pass remains bounded.
-- Treat roughly `400-500` lines in a **new** handwritten file, or a second unrelated responsibility in an existing file, as a cohesion check.
-- Keep localized bug fixes or small behavior updates inside existing large files tight; never split legacy files merely to satisfy file-count or line-count heuristics.
-- Prefer direct control flow and clear module ownership over compressed one-liners or helper layers created only to shuffle line counts across files.
+- Count core decisions and supporting handwritten production together; disclose tests, config, docs, and verified generated files separately.
+- At the checkpoint, decide whether this module's complete responsibility is ready for its own tests, review, and merge. If adjacent responsibilities are accumulating, rescope them before adding more implementation.
+- Small complete modules close earlier; never pad a Feature to reach the checkpoint. Apply the host's PR policy, and justify any larger cohesive scope through that policy rather than treating this checkpoint as an exception.
+- Keep core decisions in a small, explicit file set. Check new large files for mixed responsibilities, keep localized fixes in existing large files tight, and prefer direct control flow over file splits, compressed code, or helper layers created only to shuffle counts.
 
 ### 3. Concrete Actions When a Module Outgrows Its PR Boundary
 
